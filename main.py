@@ -3,6 +3,7 @@ import glob
 import openpyxl
 
 from input_sheet import InputSheet
+from lserm.output_excel import OutputExcel
 
 UNUSED="""
 LSERM DOC
@@ -19,6 +20,7 @@ if __name__ == "__main__":
         print("using file",file)
         i = InputSheet(file)
         i.load()
+        i.output.__class__ = OutputExcel
         i.output.write(wb)
     wb.save("lserm.xlsx")
     wb.close()
