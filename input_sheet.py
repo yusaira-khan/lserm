@@ -4,7 +4,7 @@ import re
 import openpyxl
 import openpyxl.worksheet.worksheet
 
-from output_sheet import OutputSheet
+from output_record  import OutputRecord
 from lserm_row import LsermRow
 
 
@@ -22,7 +22,7 @@ class InputSheet:
         self._sheet = None
 
         self._metadata = {}
-        self.output = OutputSheet(self._metadata)
+        self.output = OutputRecord(self._metadata)
 
         self.rows_read = 0
         self._section = self.SECTION_INTRO
