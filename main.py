@@ -3,7 +3,7 @@ import glob
 import openpyxl
 
 from input_sheet import InputSheet
-from lserm.output_excel import OutputExcel
+from output_excel import OutputExcel
 
 UNUSED="""
 LSERM DOC

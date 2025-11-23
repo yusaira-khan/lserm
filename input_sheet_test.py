@@ -5,7 +5,7 @@
 import unittest
 from unittest.mock import Mock
 
-from lserm import InputSheet
+from input_sheet import InputSheet
 
 
 def create_mock_row(is_table_header_return=False, is_empty_return=False, is_addition_start_return=False,
@@ -34,9 +34,10 @@ class InputSheetAssignSectionTest(unittest.TestCase):
         subject = InputSheet()
         cases = [InputSheet.SECTION_ELIGIBLE, InputSheet.SECTION_ADD, InputSheet.SECTION_DEL]
         for test_section in cases:
-            subject._section = test_section
-            subject._assign_section(create_mock_row(is_empty_return=True))
-            self.assertEqual(subject._section, InputSheet.SECTION_EMPTY)
+            with self.subTest(test_section=test_section):
+                subject._section = test_section
+                subject._assign_section(create_mock_row(is_empty_return=True))
+                self.assertEqual(subject._section, InputSheet.SECTION_EMPTY)
 
     def test_not_change_to_middle_with_empty_when_intro(self):
         subject = InputSheet()
