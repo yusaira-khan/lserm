@@ -1,13 +1,9 @@
 import datetime
 
-
-
 from lserm_row import LsermRow
 
 
 class OutputRecord:
-
-
     def __init__(self, metadata=None):
         self._metadata = metadata
         self._all_current = []
@@ -26,9 +22,7 @@ class OutputRecord:
     def record_deletion(self, row: LsermRow):
         self.__record__(row, self._all_deleted, self._etfs_deleted)
 
-
-
-    def print(self):
+    def write(self):
         print("Metadata", self._metadata)
         print("Current", len(self._all_current), len(self._etfs_eligible))
         self.print_table(self._all_current, self._etfs_eligible)

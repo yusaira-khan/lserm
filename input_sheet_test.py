@@ -8,7 +8,8 @@ from unittest.mock import Mock
 from input_sheet import InputSheet
 
 
-def create_mock_row(is_table_header_return=False, is_empty_return=False, is_addition_start_return=False,
+def create_mock_row(is_table_header_return=False, is_empty_return=False,
+                    is_addition_start_return=False,
                     is_deletion_start_return=False):
     m = Mock()
     attrs = {"is_addition_start.return_value": is_addition_start_return,

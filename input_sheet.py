@@ -4,7 +4,7 @@ import re
 import openpyxl
 import openpyxl.worksheet.worksheet
 
-from output_record  import OutputRecord
+from output_record import OutputRecord
 from lserm_row import LsermRow
 
 
@@ -32,6 +32,7 @@ class InputSheet:
         self._parse()
         self._load_metadata()
         self._close()
+        return self
 
     def _open(self):
         if self._sheet is None:
@@ -82,23 +83,24 @@ class InputSheet:
         f = os.path.basename(self._path).replace(".xlsx", "")
         self._metadata["file_name"] = f
         self._metadata["quarter_end_date"] = self.date_from_quarter_str(f)
-        self._metadata["effective_date"] = self.get_date_from_value(self._sheet[self.EFFECTIVE_DATE_ADDRESS].value)
-        self._metadata["release_date"] = self.get_date_from_value(self._sheet[self.RELEASE_DATE_ADDRESS].value)
+        self._metadata["effective_date"] = self.get_date_from_value(
+            self._sheet[self.EFFECTIVE_DATE_ADDRESS].value)
+        self._metadata["release_date"] = self.get_date_from_value(
+            self._sheet[self.RELEASE_DATE_ADDRESS].value)
 
     @staticmethod
     def get_date_from_value(value: str | datetime.datetime):
-        if type(value)==str:
+        if type(value) == str:
             return datetime.date.fromisoformat(value)
         else:
             return value.date()
 
-
-    @staticmethod
-    def date_from_quarter_str(f: str):
+    @classmethod
+    def date_from_quarter_str(cls,f: str):
         s = re.match("Q(?P<quarter>\\d)-(?P<year>\\d+)", f)
         y = int(s["year"])
         q = int(s["quarter"])
-        m, d = InputSheet.QUARTERS[q]
+        m, d = cls.QUARTERS[q]
         return datetime.date(y, m, d)
 
     QUARTERS = {

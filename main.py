@@ -5,23 +5,16 @@ import openpyxl
 from input_sheet import InputSheet
 from output_excel import OutputExcel
 
-UNUSED="""
-LSERM DOC
-| col  |    A   |   B   |  C    |
-|------+--------+-------+-------|
-| pt   | 365.45 | 98.55 | 48.15 |
-| pica |  30.37 |  8.21 |  4.01 |
-| code |  65.67 | 17.76 | 13.00 |
-"""
+WINDOWS_GLOB = "C:\\Users\\yusai\\Downloads\\Q*.xlsx"
+MAC_GLOB = "/Users/yusairak/Downloads//Q*.xlsx"
+
 if __name__ == "__main__":
     wb = openpyxl.Workbook()
     wb.remove(wb.active)
-    for file in glob.glob("C:\\Users\\yusai\\Downloads\\Q*.xlsx"):
-        print("using file",file)
-        i = InputSheet(file)
-        i.load()
-        i.output.__class__ = OutputExcel
-        i.output.write(wb)
+    for file in glob.glob(MAC_GLOB):
+        print("using file", file)
+        i = InputSheet(file).load()
+        o = OutputExcel.convert(i.output, wb)
+        o.write()
     wb.save("lserm.xlsx")
     wb.close()
-

@@ -4,3 +4,4 @@ __pycache__/
 *$py.class
 secret/
 .DS_Store
+*.xlsx
