@@ -21,7 +21,7 @@ def create_mock_row(is_table_header_return=False, is_empty_return=False,
     return m
 
 
-class InputSheetAssignSectionTest(unittest.TestCase):
+class InputSheetTest(unittest.TestCase):
     def test_default_section(self):
         subject = InputSheet()
         self.assertEqual(subject._section, InputSheet.SECTION_INTRO)

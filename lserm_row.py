@@ -1,6 +1,3 @@
-import openpyxl.cell.cell
-
-
 class LsermRow:
     def __init__(self, row):
         self._input_row = row
@@ -17,8 +14,8 @@ class LsermRow:
         "BMO",
         "PIMCO",
         "iShr",
-        "iShare"
-        "CI"
+        "iShare",
+        "CI",
         "TD",
         "Fidelity",
         "Vanguard",
@@ -27,19 +24,19 @@ class LsermRow:
         "Ham",
         "GlobalX",
         "Global X",
-        "GblX"
-        "Glbl X"
-        "GlblX"
+        "GblX",
+        "Glbl X",
+        "GlblX",
         "Desjardn",
-        "Desjrdn"
-        "Des"
-        "Desjardin"
-        "Dynamc"
-        "Dynamic"
-        "Dyna "
-        "Sprott",
-        "CIBC"
-        "RBC"
+        "Desjrdn",
+        "Des",
+        "Desjardin",
+        "Dynamc",
+        "Dynamic",
+        "Dyna ",
+        "Sprott", #Comment out
+        "CIBC",
+        "RBC",
     ]
     PREFIX_FOR_ETF = [x.lower() for x in _PREFIX_FOR_ETF_]
 
@@ -75,6 +72,13 @@ class LsermRow:
     def __repr__(self):
         return f"{self.line():04}, {self.col_a}, {self.col_b}"
 
-    def write_excel(self, cell_a: openpyxl.cell.cell.Cell, cell_b: openpyxl.cell.cell.Cell):
-        cell_a.value = self.col_a
-        cell_b.value = self.col_b
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+        if self.is_empty() or other.is_empty():
+            return False
+        if self.is_partially_empty() and other.is_partially_empty():
+            return self.col_a == other.col_a
+        return self.col_b == other.col_b
+
+

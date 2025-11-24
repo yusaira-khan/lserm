@@ -168,6 +168,12 @@ class GsheetsAdapter:
     def address(cls, row: int, column: int):
         return cls.column_letter(column) + str(row)
 
+    @classmethod
+    def range_address(cls, sheet_title: str, start_row:int, start_col:int, end_row:int, end_col:int):
+        start_address = cls.address(start_row, start_col)
+        end_address = cls.address(end_row, end_col)
+        return f"{sheet_title}!{start_address}:{end_address}"
+
 
 def main():
     values = GsheetsAdapter().get_values("Sheet1!A1").get("values", [])

@@ -87,6 +87,9 @@ class InputSheet:
             self._sheet[self.EFFECTIVE_DATE_ADDRESS].value)
         self._metadata["release_date"] = self.get_date_from_value(
             self._sheet[self.RELEASE_DATE_ADDRESS].value)
+        is_supplement = "Supplement" in f
+        supplement_suffix = "-supp" if is_supplement else ""
+        self._metadata["output_title"] = str(self._metadata["quarter_end_date"]) + supplement_suffix
 
     @staticmethod
     def get_date_from_value(value: str | datetime.datetime):

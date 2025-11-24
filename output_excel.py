@@ -36,7 +36,7 @@ class OutputExcel(OutputRecord):
         return sup
 
     def write(self):
-        ws = self.wb.create_sheet(title=str(self._metadata["quarter_end_date"]))
+        ws = self.wb.create_sheet(title=self._metadata["output_title"])
         metadata_start = 1
         metadata_end = self.write_metadata(self._metadata, ws, metadata_start)
 
@@ -101,7 +101,8 @@ class OutputExcel(OutputRecord):
         for idx, data in enumerate(rows):
             cell_a = ws.cell(start_row + idx, start_col)
             cell_b = cell_a.offset(0, 1)
-            data.write_excel(cell_a, cell_b)
+            cell_a.value = data.col_a
+            cell_b.value = data.col_b
             cell_a.border = cls.ROW_LEFT
             cell_b.border = cls.ROW_RIGHT
             for w in with_matching:
