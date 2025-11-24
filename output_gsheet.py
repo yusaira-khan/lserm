@@ -1,13 +1,15 @@
-import datetime
-
 from gsheets_adapter import GsheetsAdapter
 from output_record import OutputRecord
 from lserm_row import LsermRow
 
-import openpyxl.worksheet.worksheet
-import openpyxl.styles
-import openpyxl.worksheet.dimensions
 
+class GsheetConverter:
+    @staticmethod
+    def write(records: list[OutputRecord]):
+        adapter = GsheetsAdapter()
+        for r in records:
+            o = OutputGsheet.convert(r, adapter)
+            o.write()
 
 class OutputGsheet(OutputRecord):
     gsheet: GsheetsAdapter = None
@@ -15,14 +17,14 @@ class OutputGsheet(OutputRecord):
     sheet_title = ""
 
     @classmethod
-    def convert(cls, sup: OutputRecord, wb: openpyxl.Workbook):
+    def convert(cls, sup: OutputRecord, gsheet):
         sup.__class__ = cls
-        sup.gsheet = GsheetsAdapter()
+        sup.gsheet = gsheet
         return sup
 
     def write(self):
-        self.sheet_title = str(self._metadata["output_title"])
-        self.gsheet.create_sheet(title=self.sheet_title)
+        self.sheet_title = self.title()
+        self.gsheet.find_or_create_sheet(title=self.sheet_title)
         metadata_start = 1
         metadata_end = self.write_metadata(metadata_start)
 

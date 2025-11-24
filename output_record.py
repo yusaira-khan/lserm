@@ -22,6 +22,9 @@ class OutputRecord:
     def record_deletion(self, row: LsermRow):
         self.__record__(row, self._all_deleted, self._etfs_deleted)
 
+    def title(self):
+        return self._metadata["output_title"]
+
     def write(self):
         print("Metadata", self._metadata)
         print("Current", len(self._all_current), len(self._etfs_eligible))

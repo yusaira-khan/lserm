@@ -6,6 +6,27 @@ import openpyxl.worksheet.worksheet
 import openpyxl.styles
 import openpyxl.worksheet.dimensions
 
+class ExcelContext:
+    def __init__(self, output_path):
+        self.wb = None
+        self.output_path = output_path
+
+    def __enter__(self):
+        self.wb = openpyxl.Workbook()
+        self.wb.remove(self.wb.active)
+        return self.wb
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.wb.save(self.output_path)
+        self.wb.close()
+
+    @classmethod
+    def write(cls, path:str, records:list[OutputRecord]):
+        with cls(path) as wb:
+            for i in records:
+                o=OutputExcel.convert(i, wb)
+                o.write()
+
 
 class OutputExcel(OutputRecord):
     BOLD_FONT = openpyxl.styles.Font("Calibri", bold=True)
@@ -36,7 +57,7 @@ class OutputExcel(OutputRecord):
         return sup
 
     def write(self):
-        ws = self.wb.create_sheet(title=self._metadata["output_title"])
+        ws = self.wb.create_sheet(title=self.title())
         metadata_start = 1
         metadata_end = self.write_metadata(self._metadata, ws, metadata_start)
 

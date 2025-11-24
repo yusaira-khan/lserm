@@ -8,6 +8,8 @@ import googleapiclient.discovery
 import googleapiclient.errors
 
 
+
+
 class GsheetsAdapter:
     SPREADSHEET_ID = "12BykWguB9piR9RCTkXYsRM2427dsYrZyA75bI978IBo"
     SECRET_DIR = os.path.join(os.path.dirname(__file__), "secret")
@@ -17,6 +19,7 @@ class GsheetsAdapter:
 
     def __init__(self):
         self._creds = None
+        self._service = None
 
     def get_values(self, range_address):
         return (
@@ -26,10 +29,8 @@ class GsheetsAdapter:
         )
 
     def set_values(self, values, range_address):
-        service = self.spreadsheet_service
-
         return (
-            service.spreadsheets()
+            self.spreadsheet_service
             .values()
             .update(
                 spreadsheetId=self.SPREADSHEET_ID,
@@ -56,12 +57,17 @@ class GsheetsAdapter:
 
     def create_sheet(self, title: str):
         request_body = {"requests": [{
-            "addSheetRequest": {
+            "addSheet": {
                 "properties": {"title": title},
             }
         }]}
         return self.spreadsheet_service.batchUpdate(spreadsheetId=self.SPREADSHEET_ID,
                                                     body=request_body).execute()
+    def find_or_create_sheet(self, title: str):
+        try:
+            return self.get_sheet_by_title(title)
+        except LookupError:
+            return self.create_sheet(title)
 
     def get_sheets(self):
         spreadsheet_response = self.spreadsheet_service.get(
@@ -71,6 +77,8 @@ class GsheetsAdapter:
     def get_sheet_by_title(self, title: str):
         sheets_list = self.get_sheets()
         with_title = [s for s in sheets_list if s["properties"]["title"] == title]
+        if len(with_title) ==0:
+            raise LookupError
         if len(with_title) != 1:
             raise ValueError(str(sheets_list))
 
@@ -85,8 +93,10 @@ class GsheetsAdapter:
 
     @property
     def spreadsheet_service(self) -> googleapiclient.discovery.Resource:
-        return googleapiclient.discovery.build("sheets", "v4",
+        if self._service is None:
+            self._service = googleapiclient.discovery.build("sheets", "v4",
                                                credentials=self.credentials).spreadsheets()
+        return self._service
 
     @property
     def credentials(self) -> google.oauth2.credentials.Credentials:
