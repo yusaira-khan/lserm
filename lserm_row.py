@@ -75,6 +75,6 @@ class LsermRow:
     def __repr__(self):
         return f"{self.line():04}, {self.col_a}, {self.col_b}"
 
-    def write(self, cell_a: openpyxl.cell.cell.Cell, cell_b: openpyxl.cell.cell.Cell):
+    def write_excel(self, cell_a: openpyxl.cell.cell.Cell, cell_b: openpyxl.cell.cell.Cell):
         cell_a.value = self.col_a
         cell_b.value = self.col_b

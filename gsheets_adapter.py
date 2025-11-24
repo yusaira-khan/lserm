@@ -1,4 +1,5 @@
 import os.path
+import re
 
 import google.auth.transport.requests
 import google.oauth2.credentials
@@ -12,29 +13,78 @@ class GsheetsAdapter:
     SECRET_DIR = os.path.join(os.path.dirname(__file__), "secret")
     CREDENTIALS_PATH = os.path.join(SECRET_DIR, "credentials.json")
     TOKEN_PATH = os.path.join(SECRET_DIR, "token.json")
+    USER_ENTERED = "USER_ENTERED"
 
     def __init__(self):
         self._creds = None
 
-    def get_values(self, range_name):
+    def get_values(self, range_address):
         return (
             self.spreadsheet_service.values()
-            .get(spreadsheetId=self.SPREADSHEET_ID, range=range_name)
+            .get(spreadsheetId=self.SPREADSHEET_ID, range=range_address)
             .execute()
         )
 
-    def create_sheet(self, title):
+    def set_values(self, values, range_address):
+        service = self.spreadsheet_service
+
+        return (
+            service.spreadsheets()
+            .values()
+            .update(
+                spreadsheetId=self.SPREADSHEET_ID,
+                valueInputOption=self.USER_ENTERED,
+                range=range_address,
+                body={"values": values},
+            )
+            .execute()
+        )
+
+    def append_values(self, values, range_address):
+        service = self.spreadsheet_service
+        return (
+            service.spreadsheets()
+            .values()
+            .append(
+                spreadsheetId=self.SPREADSHEET_ID,
+                valueInputOption=self.USER_ENTERED,
+                range=range_address,
+                body={"values": values},
+            )
+            .execute()
+        )
+
+    def create_sheet(self, title: str):
         request_body = {"requests": [{
-            "updateSpreadsheetProperties": {
+            "addSheetRequest": {
                 "properties": {"title": title},
-                "fields": "title",
             }
         }]}
-        self.spreadsheet_service.batchUpdate(spreadsheetId=self.SPREADSHEET_ID,
-                                             body=request_body).execute()
+        return self.spreadsheet_service.batchUpdate(spreadsheetId=self.SPREADSHEET_ID,
+                                                    body=request_body).execute()
+
+    def get_sheets(self):
+        spreadsheet_response = self.spreadsheet_service.get(
+            spreadsheetId=self.SPREADSHEET_ID).execute()
+        return spreadsheet_response["sheets"]
+
+    def get_sheet_by_title(self, title: str):
+        sheets_list = self.get_sheets()
+        with_title = [s for s in sheets_list if s["properties"]["title"] == title]
+        if len(with_title) != 1:
+            raise ValueError(str(sheets_list))
+
+    def delete_sheet(self, sheet_id: str):
+        request_body = {"requests": [{
+            "deleteSheetRequest": {
+                "properties": {"sheetId": sheet_id},
+            }
+        }]}
+        return self.spreadsheet_service.batchUpdate(spreadsheetId=self.SPREADSHEET_ID,
+                                                    body=request_body).execute()
 
     @property
-    def spreadsheet_service(self):
+    def spreadsheet_service(self) -> googleapiclient.discovery.Resource:
         return googleapiclient.discovery.build("sheets", "v4",
                                                credentials=self.credentials).spreadsheets()
 
@@ -88,11 +138,35 @@ class GsheetsAdapter:
             letters = chr(ord("A") - 1 + digit) + letters
         return letters
 
+    @staticmethod
+    def color_hex_to_dict(color_hex: str) -> dict[str, float]:
+        color_hex = color_hex.lower()
+        keys = ("red", "green", "blue")
+        color_dict = {}
+        for i in range(3):
+            key = keys[i]
+            hex_idx = i * 2
+            byte_hex = color_hex[hex_idx:hex_idx + 2]
+            float_value = int(byte_hex, 16) / 255.0
+            color_dict[key] = float_value
+        return color_dict
+
+    @staticmethod
+    def color_dict_to_hex(color_dict: dict[str, float]) -> str:
+        keys = ("red", "green", "blue")
+        color_value = 0
+        for k in keys:
+            v = color_dict[k]
+            h = int(v * 255.0)
+            color_value = color_value * 256 + h
+        hex_color = hex(color_value)[2:]
+        if len(hex_color) < 6:
+            hex_color = "0" * (6 - len(hex_color)) + hex_color
+        return hex_color
+
     @classmethod
     def address(cls, row: int, column: int):
         return cls.column_letter(column) + str(row)
-
-
 
 
 def main():

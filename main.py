@@ -15,6 +15,6 @@ if __name__ == "__main__":
         print("using file", file)
         i = InputSheet(file).load()
         o = OutputExcel.convert(i.output, wb)
-        o.write()
+        o.write_excel()
     wb.save("lserm.xlsx")
     wb.close()
