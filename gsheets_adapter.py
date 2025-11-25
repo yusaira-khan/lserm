@@ -1,14 +1,10 @@
 import os.path
-import re
 
 import google.auth.transport.requests
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
 import googleapiclient.errors
-
-
-
 
 class GsheetsAdapter:
     SPREADSHEET_ID = "12BykWguB9piR9RCTkXYsRM2427dsYrZyA75bI978IBo"
@@ -56,13 +52,13 @@ class GsheetsAdapter:
         )
 
     def create_sheet(self, title: str):
-        request_body = {"requests": [{
+        req = {
             "addSheet": {
                 "properties": {"title": title},
             }
-        }]}
-        return self.spreadsheet_service.batchUpdate(spreadsheetId=self.SPREADSHEET_ID,
-                                                    body=request_body).execute()
+        }
+        return self._batch_update(req)
+
     def find_or_create_sheet(self, title: str):
         try:
             return self.get_sheet_by_title(title)
@@ -77,17 +73,76 @@ class GsheetsAdapter:
     def get_sheet_by_title(self, title: str):
         sheets_list = self.get_sheets()
         with_title = [s for s in sheets_list if s["properties"]["title"] == title]
-        if len(with_title) ==0:
+        if len(with_title) == 0:
             raise LookupError
         if len(with_title) != 1:
             raise ValueError(str(sheets_list))
 
     def delete_sheet(self, sheet_id: str):
-        request_body = {"requests": [{
+        req = {
             "deleteSheetRequest": {
                 "properties": {"sheetId": sheet_id},
             }
-        }]}
+        }
+        return self._batch_update(req)
+
+    def make_bold(self, grid_range):
+        format_obj ={ "textFormat": { "bold": True, } }
+        return self._update_range_format(format_obj, grid_range)
+
+    def set_background(self, grid_range, color):
+        format_obj = {"backgroundColorStyle": color.style}
+        return self._update_range_format(format_obj, grid_range)
+
+    def cross_out(self, grid_range):
+        format_obj ={ "textFormat": { "strikethrough": True, } }
+        return self._update_range_format(format_obj, grid_range)
+
+    def _update_range_format(self, format_obj, grid_range):
+        key = format_obj.keys[0]
+        req = {
+            "updateCells": {
+                "rows": [{
+                    "values": [{
+                        "userEnteredFormat": format_obj
+                    }]
+                }],
+                "range": grid_range,
+                "fields": f"userEnteredFormat.{key}"
+            }
+        }
+        return self._batch_update(req)
+
+    def add_border(self, grid_range):
+        border = {"style": "SOLID"}
+        no_border = {"style": "NONE"}
+        req= {
+            "updateBordersRequest": {
+                "range": grid_range,
+                "top": {
+                    border
+                },
+                "bottom": {
+                    border
+                },
+                "left": {
+                    border
+                },
+                "right": {
+                    border
+                },
+                "innerHorizontal": {
+                    no_border
+                },
+                "innerVertical": {
+                    border
+                }
+            }
+        }
+        return self._batch_update(req)
+
+    def _batch_update(self, inner_request):
+        request_body =  {"requests": [inner_request]}
         return self.spreadsheet_service.batchUpdate(spreadsheetId=self.SPREADSHEET_ID,
                                                     body=request_body).execute()
 
@@ -95,7 +150,7 @@ class GsheetsAdapter:
     def spreadsheet_service(self) -> googleapiclient.discovery.Resource:
         if self._service is None:
             self._service = googleapiclient.discovery.build("sheets", "v4",
-                                               credentials=self.credentials).spreadsheets()
+                                                            credentials=self.credentials).spreadsheets()
         return self._service
 
     @property
@@ -148,24 +203,55 @@ class GsheetsAdapter:
             letters = chr(ord("A") - 1 + digit) + letters
         return letters
 
-    @staticmethod
-    def color_hex_to_dict(color_hex: str) -> dict[str, float]:
+    @classmethod
+    def address(cls, row: int, column: int):
+        return cls.column_letter(column) + str(row)
+
+    @classmethod
+    def range_address(cls, sheet_title: str, start_row: int, start_col: int, end_row: int,
+                      end_col: int):
+        start_address = cls.address(start_row, start_col)
+        end_address = cls.address(end_row, end_col)
+        return f"{sheet_title}!{start_address}:{end_address}"
+
+class Color:
+    KEYS = ("red", "green", "blue")
+    HEX_KEY = "hex"
+    def __init__(self, **kwargs):
+        if not kwargs:
+            raise ValueError(f"At least one of {self.KEYS+(self.HEX_KEY,)} must be given")
+        if self.HEX_KEY in kwargs:
+            self._h = kwargs[self.HEX_KEY]
+            rgb = self.color_hex_to_dict(self._h)
+        else:
+            rgb = {k: float(kwargs[k]) for k in self.KEYS}
+            self._h = self.color_dict_to_hex(rgb)
+        self._inner = {"rgb": rgb}
+
+    @property
+    def style(self):
+        return self._inner
+
+    @property
+    def hex(self):
+        return self._h
+
+    @classmethod
+    def color_hex_to_dict(cls,color_hex: str) -> dict[str, float]:
         color_hex = color_hex.lower()
-        keys = ("red", "green", "blue")
         color_dict = {}
         for i in range(3):
-            key = keys[i]
+            key = cls.KEYS[i]
             hex_idx = i * 2
             byte_hex = color_hex[hex_idx:hex_idx + 2]
             float_value = int(byte_hex, 16) / 255.0
             color_dict[key] = float_value
         return color_dict
 
-    @staticmethod
-    def color_dict_to_hex(color_dict: dict[str, float]) -> str:
-        keys = ("red", "green", "blue")
+    @classmethod
+    def color_dict_to_hex(cls, color_dict: dict[str, float]) -> str:
         color_value = 0
-        for k in keys:
+        for k in cls.KEYS:
             v = color_dict[k]
             h = int(v * 255.0)
             color_value = color_value * 256 + h
@@ -173,16 +259,6 @@ class GsheetsAdapter:
         if len(hex_color) < 6:
             hex_color = "0" * (6 - len(hex_color)) + hex_color
         return hex_color
-
-    @classmethod
-    def address(cls, row: int, column: int):
-        return cls.column_letter(column) + str(row)
-
-    @classmethod
-    def range_address(cls, sheet_title: str, start_row:int, start_col:int, end_row:int, end_col:int):
-        start_address = cls.address(start_row, start_col)
-        end_address = cls.address(end_row, end_col)
-        return f"{sheet_title}!{start_address}:{end_address}"
 
 
 def main():
