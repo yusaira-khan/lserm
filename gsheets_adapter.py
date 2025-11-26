@@ -6,6 +6,7 @@ import google_auth_oauthlib.flow
 import googleapiclient.discovery
 import googleapiclient.errors
 
+
 class GsheetsAdapter:
     SPREADSHEET_ID = "12BykWguB9piR9RCTkXYsRM2427dsYrZyA75bI978IBo"
     SECRET_DIR = os.path.join(os.path.dirname(__file__), "secret")
@@ -61,9 +62,9 @@ class GsheetsAdapter:
 
     def find_or_create_sheet(self, title: str):
         try:
-            return self.get_sheet_by_title(title)
+            return self.get_sheet_by_title(title)["properties"]["sheetId"]
         except LookupError:
-            return self.create_sheet(title)
+            return self.create_sheet(title)["replies"][0]["addSheet"]["properties"]["sheetId"]
 
     def get_sheets(self):
         spreadsheet_response = self.spreadsheet_service.get(
@@ -77,6 +78,7 @@ class GsheetsAdapter:
             raise LookupError
         if len(with_title) != 1:
             raise ValueError(str(sheets_list))
+        return with_title[0]
 
     def delete_sheet(self, sheet_id: str):
         req = {
@@ -86,63 +88,76 @@ class GsheetsAdapter:
         }
         return self._batch_update(req)
 
-    def make_bold(self, grid_range):
-        format_obj ={ "textFormat": { "bold": True, } }
-        return self._update_range_format(format_obj, grid_range)
+    def make_bold(self, grid_range_list):
+        format_obj = {"textFormat": {"bold": True, }}
+        return self._update_range_format(format_obj, grid_range_list)
 
-    def set_background(self, grid_range, color):
+    def set_background(self, grid_range_list, color):
         format_obj = {"backgroundColorStyle": color.style}
-        return self._update_range_format(format_obj, grid_range)
+        return self._update_range_format(format_obj, grid_range_list)
 
-    def cross_out(self, grid_range):
-        format_obj ={ "textFormat": { "strikethrough": True, } }
-        return self._update_range_format(format_obj, grid_range)
+    def cross_out(self, grid_range_list):
+        format_obj = {"textFormat": {"strikethrough": True, }}
+        return self._update_range_format(format_obj, grid_range_list)
 
-    def _update_range_format(self, format_obj, grid_range):
-        key = format_obj.keys[0]
-        req = {
-            "updateCells": {
-                "rows": [{
-                    "values": [{
-                        "userEnteredFormat": format_obj
-                    }]
-                }],
-                "range": grid_range,
-                "fields": f"userEnteredFormat.{key}"
-            }
-        }
-        return self._batch_update(req)
+    def _update_range_format(self, format_obj, grid_range_list):
+        key = list(format_obj.keys())[0]
+        requests = []
+        for grid_range in grid_range_list:
+            requests.append({
+                "updateCells": {
+                    "rows": [{
+                        "values": [{
+                            "userEnteredFormat": format_obj
+                        }]
+                    }],
+                    "range": grid_range,
+                    "fields": f"userEnteredFormat.{key}"
+                }
+            })
+        return self._batch_update(requests)
 
     def add_border(self, grid_range):
         border = {"style": "SOLID"}
         no_border = {"style": "NONE"}
-        req= {
-            "updateBordersRequest": {
+        request = {
+            "updateBorders": {
                 "range": grid_range,
-                "top": {
-                    border
-                },
-                "bottom": {
-                    border
-                },
-                "left": {
-                    border
-                },
-                "right": {
-                    border
-                },
-                "innerHorizontal": {
-                    no_border
-                },
-                "innerVertical": {
-                    border
-                }
+                "top": border,
+                "bottom": border,
+                "left": border,
+                "right": border,
+                "innerHorizontal": no_border,
+                "innerVertical": border,
             }
         }
-        return self._batch_update(req)
+        return self._batch_update(request)
 
-    def _batch_update(self, inner_request):
-        request_body =  {"requests": [inner_request]}
+    def change_column_widths(self, sheet_id: str, column_list: list[int], width_list: list[int]):
+        requests = []
+        for column, width in zip(column_list, width_list):
+            column_idx = column - 1
+
+            requests.append({
+                "updateDimensionProperties": {
+                    "range": {
+                        "sheetId": sheet_id,
+                        "dimension": "COLUMNS",
+                        "startIndex": column_idx,
+                        "endIndex": column_idx + 1
+                    },
+                    "properties": {
+                        "pixelSize": width
+                    },
+                    "fields": "pixelSize"
+                }
+            })
+        self._batch_update(requests)
+
+    def _batch_update(self, inner_requests):
+        if type(inner_requests) != list:
+            inner_requests = [inner_requests]
+        request_body = {"requests": [inner_requests]}
         return self.spreadsheet_service.batchUpdate(spreadsheetId=self.SPREADSHEET_ID,
                                                     body=request_body).execute()
 
@@ -214,19 +229,21 @@ class GsheetsAdapter:
         end_address = cls.address(end_row, end_col)
         return f"{sheet_title}!{start_address}:{end_address}"
 
-class Color:
+
+class GsheetsColor:
     KEYS = ("red", "green", "blue")
     HEX_KEY = "hex"
+
     def __init__(self, **kwargs):
         if not kwargs:
-            raise ValueError(f"At least one of {self.KEYS+(self.HEX_KEY,)} must be given")
+            raise ValueError(f"At least one of {self.KEYS + (self.HEX_KEY,)} must be given")
         if self.HEX_KEY in kwargs:
             self._h = kwargs[self.HEX_KEY]
             rgb = self.color_hex_to_dict(self._h)
         else:
             rgb = {k: float(kwargs[k]) for k in self.KEYS}
             self._h = self.color_dict_to_hex(rgb)
-        self._inner = {"rgb": rgb}
+        self._inner = {"rgbColor": rgb}
 
     @property
     def style(self):
@@ -237,7 +254,7 @@ class Color:
         return self._h
 
     @classmethod
-    def color_hex_to_dict(cls,color_hex: str) -> dict[str, float]:
+    def color_hex_to_dict(cls, color_hex: str) -> dict[str, float]:
         color_hex = color_hex.lower()
         color_dict = {}
         for i in range(3):
