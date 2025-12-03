@@ -17,6 +17,7 @@ class LsermRow:
             if i in self.col_a_lowercase:
                 return True
         return False
+
     _INFIX_FOR_ETF_ = ["Asset", "Bond", "ETF", "Index"]
     INFIX_FOR_ETF = [x.lower() for x in _INFIX_FOR_ETF_]
 
@@ -28,20 +29,21 @@ class LsermRow:
             if self.col_a_lowercase.startswith(p):
                 return True
         return False
+
     _PREFIX_FOR_ETF_ = [
         "BMO",
         "PIMCO",
         "iShr", "iShare", "RBC",
-        "CI", #matches CI Funds and CIBC
+        "CI",  # matches CI Funds and CIBC
         "TD",
         "Fidelity", "Fid ",
         "Vanguard", "Vangrd",
-        "Harv", #Harvest
-        "Ham", #Hamilton
+        "Harv",  # Harvest
+        "Ham",  # Hamilton
         "GlobalX", "Global X", "GblX", "Glbl X", "GlblX", "BetaPro",
         "Desjardin", "Desjardn", "Desjrdn", "Des",
         "Dynamic", "Dynamc", "Dyna ",
-        "Sprott", #Not an etf, but similar to Royal Mint's ETRs
+        "Sprott",  # Not an etf, but similar to Royal Mint's ETRs
         "Mack", "Wealthsimp",
         "NBI",
         "IA Clarington",
@@ -62,10 +64,11 @@ class LsermRow:
             if self.col_a.startswith(p):
                 return True
         return False
+
     PREFIX_FOR_FALSE_POSITIVES = [
-        "CI Financial", "Cineplex", "Cipher", #matches CI Funds
-        "Hammond", #matches Ham for Hamilton
-        "Descartes",  #matches Des for Desjardins
+        "CI Financial", "Cineplex", "Cipher",  # matches CI Funds
+        "Hammond",  # matches Ham for Hamilton
+        "Descartes",  # matches Des for Desjardins
         "Sprott Inc",
         "Manulife Fin",
         "AGF Management",
@@ -100,5 +103,3 @@ class LsermRow:
         if self.is_partially_empty() and other.is_partially_empty():
             return self.col_a == other.col_a
         return self.col_b == other.col_b
-
-
