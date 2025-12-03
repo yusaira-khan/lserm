@@ -34,16 +34,16 @@ class LsermRow:
         "iShr", "iShare", "RBC",
         "CI", #matches CI Funds and CIBC
         "TD",
-        "Fidelity", "Fid "
+        "Fidelity", "Fid ",
         "Vanguard", "Vangrd",
         "Harv", #Harvest
         "Ham", #Hamilton
-        "GlobalX", "Global X", "GblX", "Glbl X", "GlblX", "BetaPro"
+        "GlobalX", "Global X", "GblX", "Glbl X", "GlblX", "BetaPro",
         "Desjardin", "Desjardn", "Desjrdn", "Des",
         "Dynamic", "Dynamc", "Dyna ",
         "Sprott", #Not an etf, but similar to Royal Mint's ETRs
         "Mack", "Wealthsimp",
-        "NBI"
+        "NBI",
         "IA Clarington",
         "Purpose",
         "Ninepoint",
@@ -51,7 +51,7 @@ class LsermRow:
         "Evolve", "Ev ", "High Interest Savings Account Fund",
         "Scotia",
         "Manulife",
-        "Brompton", "Bromptn"
+        "Brompton", "Bromptn",
         "Franklin",
         "AGF",
     ]
