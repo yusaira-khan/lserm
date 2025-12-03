@@ -1,3 +1,5 @@
+import time
+
 from gsheets_adapter import GsheetsAdapter, GsheetsColor
 from output_record import OutputRecord
 from lserm_row import LsermRow
@@ -18,7 +20,8 @@ class OutputGsheet(OutputRecord):
     sheet_title = ""
     SYMBOL_WIDTH = 120
     DESCRIPTION_WIDTH = 360
-    HIGHTLIGHT_COLOR = "fff2cc"
+    HIGHLIGHT_COLOR = "fff2cc"
+    SLEEP_TIME = 15 #seconds
 
     @classmethod
     def convert(cls, sup: OutputRecord, gsheet):
@@ -39,16 +42,21 @@ class OutputGsheet(OutputRecord):
         data_start = self.write_header(header_label="Eligible ETFs (Additions Highlighted)",
                                        start_row=table_start, start_col=table_1_col)
         data_end = self.write_list(rows=self._etfs_eligible, with_matching=self._etfs_added,
-                                   start_row=data_start, start_col=table_1_col)
+                                   start_row=data_start, start_col=table_1_col, add_filter=True)
         print(
-            f"wrote table from ({table_start},{table_1_col}) to ({data_end},{table_1_col + 1}) in {self.sheet_title}")
+            f"wrote table from ({table_start},{table_1_col})"
+            f" to ({data_end},{table_1_col + 1}) in {self.sheet_title}")
 
         data_start = self.write_header("Deletions",
                                        start_row=table_start, start_col=table_2_col)
         data_end = self.write_list(rows=self._etfs_deleted,
                                    start_row=data_start, start_col=table_2_col, cross_out=True)
         print(
-            f"wrote table from ({table_start},{table_2_col}) to ({data_end},{table_2_col + 1}) in {self.sheet_title}")
+            f"wrote table from ({table_start},{table_2_col})"
+            f" to ({data_end},{table_2_col + 1}) in {self.sheet_title}")
+
+        print(f"sleeping for {self.SLEEP_TIME} seconds")
+        time.sleep(self.SLEEP_TIME)
 
     def write_metadata(self, start_row: int) -> int:
         data = []
@@ -76,22 +84,26 @@ class OutputGsheet(OutputRecord):
 
     def write_list(self, rows: list[LsermRow],
                    start_row: int, start_col: int,
-                   with_matching: list[LsermRow] = (), cross_out: bool = False) -> int:
+                   with_matching: list[LsermRow] = (),
+                   cross_out: bool = False, add_filter: bool = False) -> int:
         table = []
         highlighted_idx = []
         for idx, data in enumerate(rows):
             table_row = [data.col_a, data.col_b]
             for w in with_matching:
-                if data.col_b == w.col_b:
+                if data == w:
                     highlighted_idx.append(idx)
             table.append(table_row)
         if highlighted_idx:
             grid_range_list = self.table_indexes_to_grid_range_list(start_row, start_col, highlighted_idx)
-            color = GsheetsColor(hex=self.HIGHTLIGHT_COLOR)
+            color = GsheetsColor(hex=self.HIGHLIGHT_COLOR)
             self.gsheet.set_background(grid_range_list, color)
         if cross_out:
             grid_range_list = self.table_indexes_to_grid_range_list(start_row, start_col, range(len(table)))
             self.gsheet.cross_out(grid_range_list)
+        if add_filter:
+            grid_range = self.to_grid_range(start_row-1, start_col, num_rows=len(table)+1, num_cols=2)
+            self.gsheet.add_filter(grid_range)
 
         return self.upload_values(table, start_row, start_col)
 

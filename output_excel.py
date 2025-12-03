@@ -35,7 +35,7 @@ class OutputExcel(OutputRecord):
     HEADER_RIGHT = openpyxl.styles.Border(top=BORDER_SIDE, bottom=BORDER_SIDE, right=BORDER_SIDE)
     ROW_LEFT = openpyxl.styles.Border(left=BORDER_SIDE)
     ROW_RIGHT = openpyxl.styles.Border(right=BORDER_SIDE)
-    HIGHLIGHT = openpyxl.styles.PatternFill("solid", bgColor="ffffffa6", fgColor="ffffffa6")
+    HIGHLIGHT = openpyxl.styles.PatternFill("solid", bgColor="fffff2cc", fgColor="fffff2cc")
     DATE_FORMAT = 'mmmm\\ d", "yyyy;@'
     ALIGNMENT = openpyxl.styles.Alignment(horizontal="left")
     """
@@ -70,14 +70,16 @@ class OutputExcel(OutputRecord):
         data_end = self.write_list(rows=self._etfs_eligible, with_matching=self._etfs_added, ws=ws,
                                    start_row=data_start, start_col=table_1_col)
         print(
-            f"wrote table from ({table_start},{table_1_col}) to ({data_end},{table_1_col + 1}) in {ws.title}")
+            f"wrote table from ({table_start},{table_1_col})"
+            f"to ({data_end},{table_1_col + 1}) in {ws.title}")
 
         data_start = self.write_header("Deletions", ws,
                                        start_row=table_start, start_col=table_2_col)
         data_end = self.write_list(rows=self._etfs_deleted, ws=ws,
                                    start_row=data_start, start_col=table_2_col)
         print(
-            f"wrote table from ({table_start},{table_2_col}) to ({data_end},{table_2_col + 1}) in {ws.title}")
+            f"wrote table from ({table_start},{table_2_col})"
+            f"to ({data_end},{table_2_col + 1}) in {ws.title}")
 
     @classmethod
     def write_metadata(cls, metadata: dict[str, str | datetime.date],

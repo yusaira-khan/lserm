@@ -2,54 +2,74 @@ class LsermRow:
     def __init__(self, row):
         self._input_row = row
         self.col_a = row[0].value
+        self.col_a_lowercase = self.col_a.lower() if type(self.col_a) == str else self.col_a
         self.col_b = row[1].value
 
-    def matches_etf_prefix(self):
-        for p in self.PREFIX_FOR_ETF:
-            if self.col_a.lower().startswith(p):
+    def is_etf(self):
+        return (
+                (self.has_etf_infix() and not self.has_incorrect_infix())
+                or
+                (self.has_etf_prefix() and not self.has_incorrect_prefix())
+        )
+
+    def has_etf_infix(self):
+        for i in self.INFIX_FOR_ETF:
+            if i in self.col_a_lowercase:
                 return True
         return False
+    _INFIX_FOR_ETF_ = ["Asset", "Bond", "ETF", "Index"]
+    INFIX_FOR_ETF = [x.lower() for x in _INFIX_FOR_ETF_]
 
+    def has_incorrect_infix(self):
+        return self.col_b == "NFLX"
+
+    def has_etf_prefix(self):
+        for p in self.PREFIX_FOR_ETF:
+            if self.col_a_lowercase.startswith(p):
+                return True
+        return False
     _PREFIX_FOR_ETF_ = [
         "BMO",
         "PIMCO",
-        "iShr",
-        "iShare",
-        "CI",
+        "iShr", "iShare", "RBC",
+        "CI", #matches CI Funds and CIBC
         "TD",
-        "Fidelity",
-        "Vanguard",
-        "Vangrd",
-        "Harvest",
-        "Ham",
-        "GlobalX",
-        "Global X",
-        "GblX",
-        "Glbl X",
-        "GlblX",
-        "Desjardn",
-        "Desjrdn",
-        "Des",
-        "Desjardin",
-        "Dynamc",
-        "Dynamic",
-        "Dyna ",
-        "Sprott", #Comment out
-        "CIBC",
-        "RBC",
+        "Fidelity", "Fid "
+        "Vanguard", "Vangrd",
+        "Harv", #Harvest
+        "Ham", #Hamilton
+        "GlobalX", "Global X", "GblX", "Glbl X", "GlblX", "BetaPro"
+        "Desjardin", "Desjardn", "Desjrdn", "Des",
+        "Dynamic", "Dynamc", "Dyna ",
+        "Sprott", #Not an etf, but similar to Royal Mint's ETRs
+        "Mack", "Wealthsimp",
+        "NBI"
+        "IA Clarington",
+        "Purpose",
+        "Ninepoint",
+        "Invesco",
+        "Evolve", "Ev ", "High Interest Savings Account Fund",
+        "Scotia",
+        "Manulife",
+        "Brompton", "Bromptn"
+        "Franklin",
+        "AGF",
     ]
     PREFIX_FOR_ETF = [x.lower() for x in _PREFIX_FOR_ETF_]
 
-    def matches_stock_prefix(self):
-        for p in self.PREFIX_FOR_STOCK:
+    def has_incorrect_prefix(self):
+        for p in self.PREFIX_FOR_FALSE_POSITIVES:
             if self.col_a.startswith(p):
                 return True
         return False
-
-    PREFIX_FOR_STOCK = ["CI Financial", "Sprott Inc", "Descartes"]
-
-    def is_etf(self):
-        return (not self.matches_stock_prefix()) and self.matches_etf_prefix()
+    PREFIX_FOR_FALSE_POSITIVES = [
+        "CI Financial", "Cineplex", "Cipher", #matches CI Funds
+        "Hammond", #matches Ham for Hamilton
+        "Descartes",  #matches Des for Desjardins
+        "Sprott Inc",
+        "Manulife Fin",
+        "AGF Management",
+    ]
 
     def is_addition_start(self):
         return self.col_a == "ADDITIONS"

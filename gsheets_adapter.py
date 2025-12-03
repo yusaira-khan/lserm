@@ -53,18 +53,16 @@ class GsheetsAdapter:
         )
 
     def create_sheet(self, title: str):
-        req = {
-            "addSheet": {
-                "properties": {"title": title},
-            }
-        }
-        return self._batch_update(req)
+        return self._batch_update({"addSheet": {"properties": {"title": title}}})
 
     def find_or_create_sheet(self, title: str):
-        try:
-            return self.get_sheet_by_title(title)["properties"]["sheetId"]
-        except LookupError:
+        sheet = self.get_sheet_by_title(title)
+        if sheet is None:
             return self.create_sheet(title)["replies"][0]["addSheet"]["properties"]["sheetId"]
+        else:
+            sheet_id = sheet["properties"]["sheetId"]
+            self.reset_sheet(sheet_id)
+            return sheet_id
 
     def get_sheets(self):
         spreadsheet_response = self.spreadsheet_service.get(
@@ -75,21 +73,26 @@ class GsheetsAdapter:
         sheets_list = self.get_sheets()
         with_title = [s for s in sheets_list if s["properties"]["title"] == title]
         if len(with_title) == 0:
-            raise LookupError
-        if len(with_title) != 1:
-            raise ValueError(str(sheets_list))
+            return None
         return with_title[0]
 
+    def reset_sheet(self, sheet_id):
+        requests = [
+            {"clearBasicFilter": {"sheetId": sheet_id, }},
+            {"deleteDimension": {
+                "range": {"sheetId": sheet_id, "dimension": "ROWS", "startIndex": 2}}},
+            {"appendDimension": {"sheetId": sheet_id, "dimension": "ROWS", "length": 999}}
+        ]
+        return self._batch_update(requests)
+
     def delete_sheet(self, sheet_id: str):
-        req = {
-            "deleteSheetRequest": {
-                "properties": {"sheetId": sheet_id},
-            }
-        }
-        return self._batch_update(req)
+        return self._batch_update({"deleteSheetRequest": {"properties": {"sheetId": sheet_id}}})
+
+    def add_filter(self, grid_range):
+        return self._batch_update({"setBasicFilter": {"filter": {"range": grid_range}}})
 
     def make_bold(self, grid_range_list):
-        format_obj = {"textFormat": {"bold": True, }}
+        format_obj = {"textFormat": {"bold": True}}
         return self._update_range_format(format_obj, grid_range_list)
 
     def set_background(self, grid_range_list, color):
@@ -97,7 +100,7 @@ class GsheetsAdapter:
         return self._update_range_format(format_obj, grid_range_list)
 
     def cross_out(self, grid_range_list):
-        format_obj = {"textFormat": {"strikethrough": True, }}
+        format_obj = {"textFormat": {"strikethrough": True}}
         return self._update_range_format(format_obj, grid_range_list)
 
     def _update_range_format(self, format_obj, grid_range_list):
